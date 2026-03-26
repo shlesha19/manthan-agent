@@ -1,0 +1,37 @@
+Company,Product_Category,Quarter,Units_Sold,Revenue_M,COGS_M,Marketing_Spend_M
+Apex,Smartphones,Q1,1200000,1050,630,85
+Apex,Smartphones,Q2,1150000,990,595,80
+Apex,Smartphones,Q3,1400000,1250,750,110
+Apex,Smartphones,Q4,1800000,1620,970,150
+Apex,Wearables,Q1,450000,135,65,25
+Apex,Wearables,Q2,480000,144,70,28
+Apex,Wearables,Q3,520000,156,75,30
+Apex,Wearables,Q4,800000,240,115,60
+Apex,Smart Home,Q1,300000,75,45,15
+Apex,Smart Home,Q2,310000,78,47,15
+Apex,Smart Home,Q3,340000,85,50,18
+Apex,Smart Home,Q4,550000,138,82,35
+Nexus,Smartphones,Q1,900000,720,470,60
+Nexus,Smartphones,Q2,880000,705,460,55
+Nexus,Smartphones,Q3,950000,760,495,65
+Nexus,Smartphones,Q4,1200000,960,625,95
+Nexus,Wearables,Q1,600000,150,80,35
+Nexus,Wearables,Q2,620000,155,82,35
+Nexus,Wearables,Q3,650000,162,85,40
+Nexus,Wearables,Q4,950000,238,125,70
+Nexus,Smart Home,Q1,400000,80,55,20
+Nexus,Smart Home,Q2,410000,82,56,20
+Nexus,Smart Home,Q3,430000,86,59,22
+Nexus,Smart Home,Q4,600000,120,80,40
+Vertex,Smartphones,Q1,500000,450,315,45
+Vertex,Smartphones,Q2,480000,432,302,40
+Vertex,Smartphones,Q3,520000,468,328,48
+Vertex,Smartphones,Q4,750000,675,472,75
+Vertex,Wearables,Q1,300000,90,55,20
+Vertex,Wearables,Q2,310000,93,57,20
+Vertex,Wearables,Q3,330000,99,60,22
+Vertex,Wearables,Q4,500000,150,90,45
+Vertex,Smart Home,Q1,800000,160,105,40
+Vertex,Smart Home,Q2,820000,164,107,40
+Vertex,Smart Home,Q3,850000,170,110,42
+Vertex,Smart Home,Q4,1100000,220,145,65
