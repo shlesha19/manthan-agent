@@ -27,7 +27,7 @@ log = logging.getLogger("data_categorizer")
 # ── Config ─────────────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = "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"          # ← replace / env var
 OPENROUTER_MODEL   = "deepseek/deepseek-chat:free"
-OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_URL     = "https://openrouter.ai/deepseek/deepseek-chat:free"
 BATCH_SIZE         = 20     # rows per LLM call — keeps prompts short
 MAX_RETRIES        = 3
 RETRY_DELAY        = 2      # seconds
