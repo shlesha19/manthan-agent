@@ -23,7 +23,7 @@ log = logging.getLogger("data_transformer")
 # ── Config ─────────────────────────────────────────────────────────────────────
 OPENROUTER_API_KEY = "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"          # ← replace / env var
 OPENROUTER_MODEL   = "mistralai/mistral-7b-instruct"    # cheap, fast default
-OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_URL     = "https://openrouter.ai/meta-llama/llama-3.3-70b-instruct:free"
 
 
 # ── LLM helper ─────────────────────────────────────────────────────────────────
