@@ -14,12 +14,14 @@ import traceback
 import shutil
 from pathlib import Path
 
+import pandas as pd
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from pipeline_runner import run_pipeline
+from pipeline import run_pipeline
 
 # ── If your team already has a file-resolver function, import it here:
 # from fetcher import resolve_file_for_query   ← swap in if it exists
@@ -38,7 +40,7 @@ app.add_middleware(
 )
 
 # ── IMPORTANT: Set this to your local data folder path ────────
-DATA_FOLDER = os.environ.get("MANTHA_DATA_FOLDER", "./data")
+DATA_FOLDER = os.environ.get("MANTHA_DATA_FOLDER", "./Databases")
 
 
 # ── Request shape from the Gmail extension ────────────────────
@@ -117,11 +119,11 @@ async def process(req: EmailRequest):
             )
 
             return JSONResponse(content={
-                "success":    True,
-                "draft":      draft,
-                "report_pdf": pdf_b64,
-                "filename":   f"MANTHA_Report_{Path(filepath).stem}.pdf",
-                "source_file": os.path.basename(filepath),
+                "success": True,
+                "draft_text": draft,
+                "pdf_base64": pdf_b64,
+                "subject": req.context.get("subject", "MANTHA Report"),
+                "recipient": req.context.get("sender", "")
             })
 
         finally:
@@ -138,56 +140,16 @@ async def process(req: EmailRequest):
 # FILE RESOLVER
 # ═══════════════════════════════════════════════════════════════
 
-def resolve_file_for_query(query: str, context: dict) -> str | None:
-    """
-    Finds the most relevant data file in DATA_FOLDER for a given query.
+# ═══════════════════════════════════════════════════════════════
+# FILE RESOLVER — LLM-powered semantic matching
+# ═══════════════════════════════════════════════════════════════
 
-    Priority order:
-      1. If your team has a resolve_file_for_query() in fetcher.py — use that.
-      2. Keyword match: query words against filenames.
-      3. Subject line match: email subject against filenames.
-      4. Fallback: most recently modified file in the folder.
+import json
+import requests
 
-    Swap out this whole function once your team's logic is ready.
-    """
-
-    # ── Option 1: Use your team's existing resolver if it exists ──
-    # Uncomment this block if fetcher.py has a resolve function:
-    #
-    # try:
-    #     from fetcher import resolve_file_for_query as team_resolver
-    #     return team_resolver(query, DATA_FOLDER)
-    # except ImportError:
-    #     pass
-
-    # ── Option 2: Keyword match against filenames ──────────────
-    files = list_data_files(full_path=True)
-    if not files:
-        return None
-
-    query_words = set(query.lower().split())
-    subject     = context.get("subject", "").lower()
-    subject_words = set(subject.split())
-    search_terms  = query_words | subject_words
-
-    scored = []
-    for fp in files:
-        name  = Path(fp).stem.lower().replace("_", " ").replace("-", " ")
-        score = sum(1 for word in search_terms if word in name)
-        scored.append((score, fp))
-
-    scored.sort(key=lambda x: x[0], reverse=True)
-
-    # If any file scored > 0, return the best match
-    best_score, best_file = scored[0]
-    if best_score > 0:
-        log.info("File matched by keyword (score=%d): %s", best_score, best_file)
-        return best_file
-
-    # ── Option 3: Fallback — most recently modified file ───────
-    files_by_mtime = sorted(files, key=os.path.getmtime, reverse=True)
-    log.warning("No keyword match found — falling back to most recent file: %s", files_by_mtime[0])
-    return files_by_mtime[0]
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_URL     = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL   = "deepseek/deepseek-chat:free"
 
 
 def list_data_files(full_path: bool = False) -> list[str]:
@@ -205,6 +167,94 @@ def list_data_files(full_path: bool = False) -> list[str]:
         if f.suffix.lower() in supported
     ]
     return files
+
+def resolve_file_for_query(query: str, context: dict) -> str | None:
+    """
+    Uses the LLM to semantically pick the best matching file
+    from DATA_FOLDER based on the email query + each file's columns.
+    Falls back to most recent file if LLM fails.
+    """
+    files = list_data_files(full_path=True)
+    if not files:
+        log.error("No data files found in %s", DATA_FOLDER)
+        return None
+
+    # ── Single file shortcut ───────────────────────────────────
+    if len(files) == 1:
+        log.info("Only one file available, using it: %s", files[0])
+        return files[0]
+
+    # ── Build file context: filename + column headers ──────────
+    file_summaries = []
+    for fp in files:
+        try:
+            ext = Path(fp).suffix.lower()
+            if ext in {".xlsx", ".xls"}:
+                df_peek = pd.read_excel(fp, nrows=2)
+            else:
+                df_peek = pd.read_csv(fp, nrows=2)
+            columns = df_peek.columns.tolist()
+        except Exception:
+            columns = ["(unreadable)"]
+
+        file_summaries.append({
+            "filename": Path(fp).name,
+            "columns":  columns
+        })
+
+    # ── Ask LLM to pick the best file ─────────────────────────
+    subject = context.get("subject", "")
+    prompt = (
+        f"You are a data assistant. A user sent this email:\n"
+        f"Subject: {subject}\n"
+        f"Body: {query[:500]}\n\n"
+        f"Available data files and their columns:\n"
+        f"{json.dumps(file_summaries, indent=2)}\n\n"
+        f"Which single filename best matches the user's query? "
+        f"Reply with ONLY the filename, nothing else. "
+        f"Example: revenue_data.csv"
+    )
+
+    try:
+        resp = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model":       OPENROUTER_MODEL,
+                "messages":    [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "max_tokens":  32,
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        chosen_name = resp.json()["choices"][0]["message"]["content"].strip().strip('"').strip("'")
+        log.info("LLM chose file: %s", chosen_name)
+
+        # Match back to full path
+        for fp in files:
+            if Path(fp).name.lower() == chosen_name.lower():
+                log.info("Resolved to: %s", fp)
+                return fp
+
+        # LLM returned something slightly off — fuzzy match
+        for fp in files:
+            if chosen_name.lower() in Path(fp).name.lower():
+                log.info("Fuzzy matched to: %s", fp)
+                return fp
+
+        log.warning("LLM chose '%s' but no file matched. Falling back.", chosen_name)
+
+    except Exception as exc:
+        log.warning("LLM file resolution failed: %s. Falling back.", exc)
+
+    # ── Fallback: most recently modified file ──────────────────
+    fallback = sorted(files, key=os.path.getmtime, reverse=True)[0]
+    log.warning("Fallback to most recent file: %s", fallback)
+    return fallback
 
 
 # ═══════════════════════════════════════════════════════════════
