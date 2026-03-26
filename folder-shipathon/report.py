@@ -263,24 +263,55 @@ def create_report(
 
 
 # ── Quick smoke-test ───────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    import numpy as np
-    rng = np.random.default_rng(0)
-    df = pd.DataFrame({
-        "city":    rng.choice(["Delhi", "Mumbai", "Bangalore"], 30),
-        "revenue": rng.integers(1000, 50000, 30),
-        "qty":     rng.integers(1, 100, 30),
-    })
-    path = create_report(
-        report_title="MANTHA Test Report",
-        report_subtitle="Smoke Test Run",
-        summary_text=(
-            "This is a test run of the MANTHA pipeline report generator.\n"
-            "All systems nominal. Data was loaded, transformed, and plotted successfully."
-        ),
-        dataframes=[("Sample Data", df)],
-        plot_paths=[],
-        output_path="test_report.pdf",
-    )
-    print("PDF created at:", path)
+# if __name__ == "__main__":
+#     import numpy as np
+#     rng = np.random.default_rng(0)
+#     df = pd.DataFrame({
+#         "city":    rng.choice(["Delhi", "Mumbai", "Bangalore"], 30),
+#         "revenue": rng.integers(1000, 50000, 30),
+#         "qty":     rng.integers(1, 100, 30),
+#     })
+#     path = create_report(
+#         report_title="MANTHA Test Report",
+#         report_subtitle="Smoke Test Run",
+#         summary_text=(
+#             "This is a test run of the MANTHA pipeline report generator.\n"
+#             "All systems nominal. Data was loaded, transformed, and plotted successfully."
+#         ),
+#         dataframes=[("Sample Data", df)],
+#         plot_paths=[],
+#         output_path="test_report.pdf",
+#     )
+#     print("PDF created at:", path)
     
+
+# ── Quick smoke-test ───────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    import pandas as pd
+    import os
+    import sys
+
+    # Accept the CSV path as a CLI argument: python report.py path/to/data.csv
+    local_csv_file = sys.argv[1] if len(sys.argv) > 1 else "data.csv"
+
+    if not os.path.exists(local_csv_file):
+        print(f"Error: Could not find '{local_csv_file}'.")
+    else:
+        print(f"Loading data from {local_csv_file}...")
+        
+        # Read the local file into a Pandas DataFrame
+        df = pd.read_csv(local_csv_file)
+
+        # Pass that real data into your report generator
+        path = create_report(
+            report_title="MANTHA Local Data Test",
+            report_subtitle=f"Source: {local_csv_file}",
+            summary_text=(
+                "This is a local smoke test using real CSV data instead of Numpy.\n"
+                "Review the table below to ensure columns and rows render correctly."
+            ),
+            dataframes=[("Analyzed Local Data", df)],
+            plot_paths=[], # Add local image paths like ["my_chart.png"] if you have them
+            output_path="real_data_test_report.pdf",
+        )
+        print("PDF created at:", path)

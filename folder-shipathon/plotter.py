@@ -1,3 +1,4 @@
+
 """
 MANTHA — Tool 4: plotter.py
 Generates charts and graphs from a transformed DataFrame.
@@ -247,13 +248,19 @@ def auto_plot(
     measures = breakdown.get("measures",   []) if breakdown else []
     dates    = breakdown.get("dates",      []) if breakdown else []
 
-    # Fallback: infer from dtypes
+    # Always fall back to dtype inference for any missing category
+    # (handles empty breakdown {} or partial LLM responses)
     if not dims:
         dims = df.select_dtypes(include=["object", "category"]).columns.tolist()
     if not measures:
         measures = df.select_dtypes(include="number").columns.tolist()
     if not dates:
         dates = df.select_dtypes(include=["datetime64"]).columns.tolist()
+
+    # Filter out columns that don't actually exist in the df (LLM hallucinations)
+    dims     = [c for c in dims     if c in df.columns]
+    measures = [c for c in measures if c in df.columns]
+    dates    = [c for c in dates    if c in df.columns]
 
     # 1. Heatmap (always useful if ≥2 numeric cols)
     p = heatmap(df, output_dir=output_dir)

@@ -75,7 +75,7 @@ def _coerce_types(df: pd.DataFrame, type_map: dict) -> pd.DataFrame:
             continue
         try:
             if dtype == "datetime":
-                df[col] = pd.to_datetime(df[col], infer_format=True, errors="coerce")
+                df[col] = pd.to_datetime(df[col], errors="coerce")
             elif dtype == "numeric":
                 df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
             elif dtype == "boolean":
@@ -222,13 +222,16 @@ def transform_data(
             if col not in type_map:
                 sample = df[col].dropna().head(10)
                 numeric_check = pd.to_numeric(sample, errors="coerce").notna().mean()
-                datetime_check = pd.to_datetime(sample, errors="coerce").notna().mean()
-                if datetime_check > 0.7:
-                    type_map[col] = "datetime"
-                elif numeric_check > 0.7:
+                # Check numeric FIRST — plain numbers (e.g. 1200) also parse
+                # as datetimes (Unix epoch), so numeric takes priority.
+                if numeric_check > 0.7:
                     type_map[col] = "numeric"
                 else:
-                    type_map[col] = "categorical"
+                    datetime_check = pd.to_datetime(sample, errors="coerce").notna().mean()
+                    if datetime_check > 0.7:
+                        type_map[col] = "datetime"
+                    else:
+                        type_map[col] = "categorical"
 
         log.info("Type map: %s", type_map)
         df = _coerce_types(df, type_map)

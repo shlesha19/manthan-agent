@@ -1,3 +1,4 @@
+
 """
 MANTHA — Tool 6: gmail_tool.py
 Sends the generated PDF report (and optional inline summary) via Gmail.
@@ -17,7 +18,7 @@ from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional
 
-# ── Logging ─────────────────────────────────────────────────────────────
+# ── Logging ────────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  [gmail_tool]  %(levelname)s — %(message)s",
@@ -25,19 +26,19 @@ logging.basicConfig(
 log = logging.getLogger("gmail_tool")
 
 
-# ── Config ──────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────────
 # Option A — Gmail API (preferred)
-GMAIL_CREDENTIALS_FILE = "credentials.json"  # OAuth2 client secrets file
-GMAIL_TOKEN_FILE = "token.json"  # Auto-generated after first auth
+GMAIL_CREDENTIALS_FILE = "credentials.json"   # OAuth2 client secrets file
+GMAIL_TOKEN_FILE       = "token.json"         # Auto-generated after first auth
 
 # Option B — SMTP fallback
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = os.getenv("GMAIL_USER", "")  # e.g. mantha@gmail.com
-SMTP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")  # Gmail App Password
+SMTP_HOST     = "smtp.gmail.com"
+SMTP_PORT     = 587
+SMTP_USER     = os.getenv("GMAIL_USER", "")           # e.g. mantha@gmail.com
+SMTP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")   # Gmail App Password
 
 
-# ── Gmail API send ──────────────────────────────────────────────────────
+# ── Gmail API send ─────────────────────────────────────────────────────────────
 def _send_via_gmail_api(
     to: list[str],
     subject: str,
@@ -82,16 +83,14 @@ def _send_via_gmail_api(
         return True
 
     except ImportError:
-        log.warning(
-            "google-auth / googleapiclient not installed. Falling back to SMTP."
-        )
+        log.warning("google-auth / googleapiclient not installed. Falling back to SMTP.")
         return False
     except Exception as exc:
         log.warning("Gmail API send failed (%s). Falling back to SMTP.", exc)
         return False
 
 
-# ── SMTP fallback send ──────────────────────────────────────────────────
+# ── SMTP fallback send ─────────────────────────────────────────────────────────
 def _send_via_smtp(
     to: list[str],
     subject: str,
@@ -107,9 +106,7 @@ def _send_via_smtp(
         )
         return False
     try:
-        message = _build_mime_message(
-            sender or SMTP_USER, to, subject, body_html, attachment_paths
-        )
+        message = _build_mime_message(sender or SMTP_USER, to, subject, body_html, attachment_paths)
         context = ssl.create_default_context()
         with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.ehlo()
@@ -123,7 +120,7 @@ def _send_via_smtp(
         return False
 
 
-# ── MIME message builder ────────────────────────────────────────────────
+# ── MIME message builder ───────────────────────────────────────────────────────
 def _build_mime_message(
     sender: str,
     to: list[str],
@@ -132,8 +129,8 @@ def _build_mime_message(
     attachment_paths: list[str],
 ) -> MIMEMultipart:
     msg = MIMEMultipart("mixed")
-    msg["From"] = sender
-    msg["To"] = ", ".join(to)
+    msg["From"]    = sender
+    msg["To"]      = ", ".join(to)
     msg["Subject"] = subject
 
     # Body
@@ -163,7 +160,7 @@ def _build_mime_message(
     return msg
 
 
-# ── Default HTML body ───────────────────────────────────────────────────
+# ── Default HTML body ──────────────────────────────────────────────────────────
 def _default_body(summary: str, pipeline_name: str = "MANTHA") -> str:
     return f"""
     <html><body style="font-family:Arial,sans-serif;color:#2D2D2D;max-width:640px;margin:auto;">
@@ -182,14 +179,14 @@ def _default_body(summary: str, pipeline_name: str = "MANTHA") -> str:
     """
 
 
-# ── Public API ──────────────────────────────────────────────────────────
+# ── Public API ─────────────────────────────────────────────────────────────────
 def send_report(
     to: list[str],
-    subject: str = "MANTHA Pipeline Report",
-    summary: str = "Please find the latest pipeline report attached.",
+    subject:          str  = "MANTHA Pipeline Report",
+    summary:          str  = "Please find the latest pipeline report attached.",
     attachment_paths: Optional[list[str]] = None,
-    sender: str = "",
-    body_html: Optional[str] = None,
+    sender:           str  = "",
+    body_html:        Optional[str] = None,
 ) -> bool:
     """
     Send the pipeline report via email.
@@ -214,15 +211,11 @@ def send_report(
         return False
 
     attachments = attachment_paths or []
-    html_body = body_html or _default_body(summary)
-    from_addr = sender or SMTP_USER or "money.cassata@gmail.com"
+    html_body   = body_html or _default_body(summary)
+    from_addr   = sender or SMTP_USER or "mantha-pipeline@gmail.com"
 
-    log.info(
-        "Sending report to %s  |  subject: '%s'  |  attachments: %s",
-        to,
-        subject,
-        [Path(p).name for p in attachments],
-    )
+    log.info("Sending report to %s  |  subject: '%s'  |  attachments: %s",
+             to, subject, [Path(p).name for p in attachments])
 
     # Try Gmail API, then SMTP
     if _send_via_gmail_api(to, subject, html_body, attachments, from_addr):
@@ -230,10 +223,10 @@ def send_report(
     return _send_via_smtp(to, subject, html_body, attachments, from_addr)
 
 
-# ── Quick smoke-test ────────────────────────────────────────────────────
+# ── Quick smoke-test ───────────────────────────────────────────────────────────
 if __name__ == "__main__":
     success = send_report(
-        to=["money.cassata@gmail.com"],
+        to=["test@example.com"],
         subject="MANTHA Test Email",
         summary="This is a smoke-test from the MANTHA pipeline. No attachment.",
         attachment_paths=[],

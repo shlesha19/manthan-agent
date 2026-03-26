@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s  [pipeline]  %(levelname)s — %(message)s")
 
 # ── Tool imports ───────────────────────────────────────────────────────────────
-from fetcher     import fetch_data
+from fetcher import fetch_data
 from transformer import transform_data
 from categorizer import categorise_column, auto_breakdown
 from plotter        import auto_plot
@@ -107,7 +107,7 @@ def run_pipeline(
 # ── CLI ────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MANTHA Data Pipeline")
-    parser.add_argument("--file",   required=True, help="Path to CSV/Excel input file")
+    parser.add_argument("--file", required=True, help="Path to CSV/Excel input file")
     parser.add_argument("--to",     nargs="+", default=[], help="Recipient email(s)")
     parser.add_argument("--col",    default=None, help="Column to categorise with LLM")
     parser.add_argument("--cats",   nargs="+", default=None, help="Allowed category labels")
