@@ -211,4 +211,4 @@ docker-compose up
 
 ## Project Name
 
-**MANTHA** — General Data Pipeline Agent, built on the [A2A (Agent2Agent)](https://github.com/google-deepmind/a2a) framework.
+**MANTHA** — General Data Pipeline Agent, built on the [A2A framework] as well as a mail-extension that is dockerised and can be used over a browser
